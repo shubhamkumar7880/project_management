@@ -1,5 +1,5 @@
 {
-  "id": "110df5fe-4ae1-44db-a6a5-a7f3642cb123",
+  "id": "4f6144cb-d302-4065-bf8e-84bbfb5b907f",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -110,9 +110,9 @@
           "name": "username_idx",
           "columns": [
             {
-              "expression": "username",
-              "isExpression": false,
+              "expression": "lower(\"username\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],
@@ -125,9 +125,9 @@
           "name": "email_idx",
           "columns": [
             {
-              "expression": "email",
-              "isExpression": false,
+              "expression": "lower(\"email\")",
               "asc": true,
+              "isExpression": true,
               "nulls": "last"
             }
           ],

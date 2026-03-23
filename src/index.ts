@@ -17,7 +17,7 @@ const startServer = async () => {
   }
 
   app.listen(port, () => {
-    console.log(`Example app listening on port ${port}`);
+    console.log(`project management app is listening on port ${port}`);
   });
 };
 

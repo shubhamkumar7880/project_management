@@ -1,4 +1,4 @@
-import { and, eq, lt, or } from "drizzle-orm";
+import { and, eq, gt, or } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { users } from "../models/user.models.ts";
 import asyncHandler from "../utils/async-handler.ts";
@@ -91,7 +91,7 @@ const registerUser = asyncHandler(async (req, res) => {
     subject: "Verify your email",
     mailgenContent: emailVerificationMailgenContent(
       newUser.username,
-      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${unhashedToken}`,
+      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unhashedToken}`,
     ),
   });
 
@@ -136,12 +136,12 @@ const loginUser = asyncHandler(async (req, res) => {
 
   const existingUser = user?.[0];
 
-  // if (!existingUser?.isEmailVerified) {
-  //   throw new ApiError(
-  //     401,
-  //     "User email is not verified. Please verify your email.",
-  //   );
-  // }
+  if (!existingUser?.isEmailVerified) {
+    throw new ApiError(
+      401,
+      "User email is not verified. Please verify your email.",
+    );
+  }
 
   if (existingUser) {
     const isMatch = await bcrypt.compare(password, existingUser?.password);
@@ -253,18 +253,22 @@ const verifyEmail = asyncHandler(async (req, res) => {
       and(
         eq(users.emailVerificationToken, hashedToken),
         eq(users.isEmailVerified, false),
-        lt(users.emailVerificationExpiry, new Date()),
+        gt(users.emailVerificationExpiry, new Date())
       ),
     )
     .limit(1);
 
   if (user.length === 0) {
-    throw new ApiError(400, "Invalid or expired verification token");
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/email-verified?success=false`
+    );
   }
 
   const existingUser = user[0];
   if (!existingUser) {
-    throw new ApiError(400, "Invalid or expired verification token");
+    return res.redirect(
+      `${process.env.FRONTEND_URL}/email-verified?success=false`
+    );
   }
   await db
     .update(users)
@@ -275,15 +279,9 @@ const verifyEmail = asyncHandler(async (req, res) => {
     })
     .where(eq(users.id, existingUser.id));
 
-  return res
-    .status(200)
-    .json(
-      new ApiResponse(
-        200,
-        { isEmailVerified: true },
-        "Email verified successfully",
-      ),
-    );
+  return res.redirect(
+    `${process.env.FRONTEND_URL}/email-verified?success=true`
+  );
 });
 
 const resendEmailVerification = asyncHandler(async (req, res) => {
@@ -321,7 +319,7 @@ const resendEmailVerification = asyncHandler(async (req, res) => {
     subject: "Verify your email",
     mailgenContent: emailVerificationMailgenContent(
       existingUser.username,
-      `${req.protocol}://${req.get("host")}/api/v1/users/verify-email/${unhashedToken}`,
+      `${req.protocol}://${req.get("host")}/api/v1/auth/verify-email/${unhashedToken}`,
     ),
   });
 
@@ -464,7 +462,7 @@ const resetForgotPassword = asyncHandler(async (req, res) => {
     .where(
       and(
         eq(users.forgotPasswordToken, hashedToken),
-        lt(users.forgotPasswordTokenExpiry, new Date()),
+        gt(users.forgotPasswordTokenExpiry, new Date()),
       ),
     )
     .limit(1);
