@@ -18,6 +18,14 @@ import {
   resetPasswordMailgenContent,
   sendEmail,
 } from "../utils/mail.ts";
+import { v2 as cloudinary } from "cloudinary";
+
+// Configure Cloudinary
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME as string,
+  api_key: process.env.CLOUDINARY_API_KEY as string,
+  api_secret: process.env.CLOUDINARY_API_SECRET as string,
+});
 import ApiResponse from "../utils/api-respnse.ts";
 import type { CustomRequest } from "../utils/types.ts";
 import crypto from "crypto";
@@ -79,6 +87,23 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new ApiError(500, "Something went wrong while registering user");
   }
 
+  // Handle profile picture upload
+  let avatarUrl = "https://placehold.co/200x200";
+  if (req.file) {
+    const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
+    const uploadResult = await cloudinary.uploader.upload(dataUri, {
+      folder: "avatars",
+      resource_type: "image",
+    });
+    avatarUrl = uploadResult.secure_url;
+    await db
+      .update(users)
+      .set({
+        avatarUrl,
+      })
+      .where(eq(users.id, newUser.id));
+  }
+
   const { unhashedToken, hashedToken, tokenEXpiry } = generateTemporaryToken();
   await db
     .update(users)
@@ -106,6 +131,7 @@ const registerUser = asyncHandler(async (req, res) => {
           username: newUser.username,
           email: newUser.email,
           fullName: newUser.fullName,
+          avatarUrl,
           createdAt: newUser.createdAt,
         },
       },

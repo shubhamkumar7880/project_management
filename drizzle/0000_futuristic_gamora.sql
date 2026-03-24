@@ -1,7 +1,6 @@
 CREATE TABLE "users" (
 	"id" varchar(36) PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"avatar_url" text DEFAULT 'https://placehold.co/200x200' NOT NULL,
-	"avatar_local_path" text DEFAULT '' NOT NULL,
 	"username" varchar(50) NOT NULL,
 	"email" varchar(100) NOT NULL,
 	"full_name" varchar(100) NOT NULL,

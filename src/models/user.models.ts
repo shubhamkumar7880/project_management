@@ -18,7 +18,6 @@ export const users = pgTable(
     avatarUrl: text("avatar_url")
       .notNull()
       .default("https://placehold.co/200x200"),
-    avatarLocalPath: text("avatar_local_path").notNull().default(""),
 
     username: varchar("username", { length: 50 }).notNull(),
     email: varchar("email", { length: 100 }).notNull(),

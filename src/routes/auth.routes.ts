@@ -1,4 +1,5 @@
 import { Router } from "express";
+import multer from "multer";
 import {
   changePassword,
   forgotPassword,
@@ -15,7 +16,9 @@ import { verifyJWT } from "../middlewares/auth.middleware.ts";
 
 const router = Router();
 
-router.route("/register").post(registerUser);
+const upload = multer({ storage: multer.memoryStorage() });
+
+router.route("/register").post(upload.single("profilePicture"), registerUser);
 router.route("/login").post(loginUser);
 router.route("/verify-email/:verificationToken").get(verifyEmail);
 router.route("/refresh-token").post(refreshAccessToken);
