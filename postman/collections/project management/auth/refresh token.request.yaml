@@ -1,0 +1,5 @@
+$kind: http-request
+name: refresh token
+url: "{{server}}/auth/refresh-token"
+method: POST
+order: 3000

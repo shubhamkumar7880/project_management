@@ -21,6 +21,8 @@ import {
 import ApiResponse from "../utils/api-respnse.ts";
 import type { CustomRequest } from "../utils/types.ts";
 import crypto from "crypto";
+import jwt from "jsonwebtoken";
+
 
 const generateAccessAndRefreshToken = async (userInfo: {
   id: string;
@@ -285,7 +287,7 @@ const verifyEmail = asyncHandler(async (req, res) => {
 });
 
 const resendEmailVerification = asyncHandler(async (req, res) => {
-  const email = req.body;
+  const { email } = req.body;
   if (!email) {
     throw new ApiError(400, "Unauthorized request");
   }
@@ -339,20 +341,31 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
   if (!refreshToken) {
     throw new ApiError(401, "Unauthorized request");
   }
-
+  let decoded;
+  try {
+    decoded = jwt.verify(
+      refreshToken,
+      process.env.REFRESH_TOKEN_SECRET as string,
+    ) as { id: string; };
+  } catch (err) {
+    throw new ApiError(401, "Refresh token expired or invalid");
+  }
   const user = await db
     .select()
     .from(users)
-    .where(eq(users.refreshToken, refreshToken))
+    .where(eq(users.id, decoded.id))
     .limit(1);
 
-  if (user.length === 0) {
-    throw new ApiError(401, "Unauthorized request or refresh token expired");
+  if (!user.length) {
+    throw new ApiError(401, "User not found");
   }
 
   const existingUser = user[0];
   if (!existingUser) {
-    throw new ApiError(401, "Unauthorized request or refresh token expired");
+    throw new ApiError(401, "User not found");
+  }
+  if (existingUser.refreshToken !== refreshToken) {
+    throw new ApiError(401, "Refresh token mismatch");
   }
 
   const { accessToken, refreshToken: newRefreshToken } =

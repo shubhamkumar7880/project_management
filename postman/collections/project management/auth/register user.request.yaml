@@ -1,0 +1,14 @@
+$kind: http-request
+name: register user
+url: "{{server}}/auth/register"
+method: POST
+body:
+  type: json
+  content: |-
+    {
+        "username": "johndoe",
+        "email": "john@example.com",
+        "password": "password123",
+        "fullName": "John Doe"
+    }
+order: 1000
