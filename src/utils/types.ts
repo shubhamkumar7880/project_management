@@ -4,4 +4,13 @@ export interface CustomRequest extends Request {
     username: string;
     email: string;
   };
+  workspace?: {
+    id: string;
+    name: string;
+    description: string | null;
+    workspaceAvatar: string;
+    createdBy: string;
+    createdAt: Date;
+    updatedAt: Date;
+  };
 }

@@ -25,10 +25,12 @@ app.use(cookieParser());
 import healthCheckRouter from "./routes/healthcheck.routes.js";
 import authRouter from "./routes/auth.routes.js";
 import userRouter from "./routes/user.routes.js";
+import workspaceRouter from "./routes/workspace.routes.js";
 
 app.use("/api/v1/healthcheck", healthCheckRouter);
 app.use("/api/v1/auth", authRouter);
 app.use("/api/v1/user", userRouter);
+app.use("/api/v1/workspaces", workspaceRouter);
 app.use((err: ApiError, req: Request, res: Response, next: NextFunction) => {
   res
     .status(err?.statusCode ?? 500)

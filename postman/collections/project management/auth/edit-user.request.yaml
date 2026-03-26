@@ -2,6 +2,8 @@ $kind: http-request
 name: edit user
 url: "{{server}}/user/edit"
 method: PUT
+headers:
+  Authorization: Bearer {{accessToken}}
 body:
   type: formdata
   content:
@@ -13,5 +15,5 @@ body:
       key: profilePicture
       src:
         - /C:/Users/subha/Desktop/dummy pic 2.avif
-      disabled: true
+      disabled: false
 order: 1100

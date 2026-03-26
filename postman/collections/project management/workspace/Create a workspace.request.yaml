@@ -1,0 +1,20 @@
+$kind: http-request
+name: Create a workspace
+method: POST
+url: "{{server}}/workspaces"
+headers:
+  - key: Authorization
+    value: Bearer {{accessToken}}
+    disabled: false
+body:
+  type: formdata
+  content:
+    - type: text
+      key: name
+      value: NextZen Minds
+      disabled: false
+    - type: file
+      key: workspaceAvatar
+      src:
+        - /C:/Users/subha/Desktop/dummy pic 2.avif
+order: 11000

@@ -8,6 +8,34 @@
       "when": 1774445708598,
       "tag": "0000_mushy_robbie_robertson",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1774506926410,
+      "tag": "0001_wonderful_hairball",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774508376223,
+      "tag": "0002_open_vin_gonzales",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774511214300,
+      "tag": "0003_neat_banshee",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1774530000000,
+      "tag": "0004_workspaces_description",
+      "breakpoints": true
     }
   ]
 }

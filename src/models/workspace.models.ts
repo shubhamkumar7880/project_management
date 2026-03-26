@@ -6,6 +6,7 @@ import {
     uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
+import { users } from "./user.models.ts";
 
 export const workspaces = pgTable(
     "workspaces",
@@ -16,9 +17,15 @@ export const workspaces = pgTable(
 
         name: varchar("name", { length: 100 }).notNull(),
 
+        description: text("description"),
+
         workspaceAvatar: text("workspace_avatar")
             .notNull()
             .default("https://placehold.co/200x200"),
+
+        createdBy: varchar("created_by", { length: 36 })
+            .references(() => users.id)
+            .notNull(),
 
         createdAt: timestamp("created_at").notNull().defaultNow(),
         updatedAt: timestamp("updated_at").notNull().defaultNow(),

@@ -1,16 +1,9 @@
-export enum UserRole {
-  ADMIN = "admin",
-  MEMBER = "member",
-  GUEST = "guest",
+export enum WorkspaceRole {
+  ADMIN = "ADMIN",
+  MEMBER = "MEMBER",
+  VIEWER = "VIEWER",
 }
 
-export const availableRoles = Object.values(UserRole);
+export const workspaceRoles = Object.values(WorkspaceRole);
 
-export enum TaskStatus {
-  TODO = "todo",
-  PENDING = "pending",
-  IN_PROGRESS = "in_progress",
-  DONE = "done",
-}
-
-export const availableTaskStatuses = Object.values(TaskStatus);
+export type WorkspaceRoleType = (typeof WorkspaceRole)[keyof typeof WorkspaceRole];
