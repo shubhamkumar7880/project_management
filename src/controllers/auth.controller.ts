@@ -90,18 +90,35 @@ const registerUser = asyncHandler(async (req, res) => {
   // Handle profile picture upload
   let avatarUrl = "https://placehold.co/200x200";
   if (req.file) {
-    const dataUri = `data:${req.file.mimetype};base64,${req.file.buffer.toString("base64")}`;
-    const uploadResult = await cloudinary.uploader.upload(dataUri, {
-      folder: "avatars",
-      resource_type: "image",
-    });
-    avatarUrl = uploadResult.secure_url;
-    await db
-      .update(users)
-      .set({
-        avatarUrl,
-      })
-      .where(eq(users.id, newUser.id));
+    try {
+      const buffer = req.file.buffer;
+      if (!buffer) {
+        throw new ApiError(
+          400,
+          "Invalid profile picture upload: file buffer is missing",
+        );
+      }
+
+      const dataUri = `data:${req.file.mimetype};base64,${buffer.toString("base64")}`;
+      const uploadResult = await cloudinary.uploader.upload(dataUri, {
+        folder: "avatars",
+        resource_type: "image",
+      });
+      avatarUrl = uploadResult.secure_url;
+      await db
+        .update(users)
+        .set({
+          avatarUrl,
+        })
+        .where(eq(users.id, newUser.id));
+    } catch (error: unknown) {
+      if (error instanceof ApiError) {
+        throw new ApiError(
+          400,
+          error.message || "Failed to upload profile picture. Please try again.",
+        );
+      }
+    }
   }
 
   const { unhashedToken, hashedToken, tokenEXpiry } = generateTemporaryToken();

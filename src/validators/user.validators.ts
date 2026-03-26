@@ -34,3 +34,7 @@ export const loginUserSchema = z
     message: "Either username or email is required",
     path: ["username"],
   });
+
+export const updateUserSchema = z.object({
+  fullName: z.string().min(1).transform((val) => val.trim()).optional(),
+});

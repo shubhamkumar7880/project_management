@@ -18,16 +18,17 @@ const sendEmail = async (options: {
   );
   const emailHtmlContent = mailGenerator.generate(options.mailgenContent);
   const transport = nodemailer.createTransport({
-    host: process.env.MAILTRAP_SMTP_HOST,
-    port: parseInt(process.env.MAILTRAP_SMTP_PORT as string, 10),
+    host: process.env.SMTP_HOST ?? process.env.MAILTRAP_SMTP_HOST,
+    port: parseInt(process.env.SMTP_PORT ?? process.env.MAILTRAP_SMTP_PORT ?? "587", 10),
+    secure: process.env.SMTP_SECURE === "true",
     auth: {
-      user: process.env.MAILTRAP_SMTP_USER,
-      pass: process.env.MAILTRAP_SMTP_PASS,
+      user: process.env.SMTP_USER ?? process.env.MAILTRAP_SMTP_USER,
+      pass: process.env.SMTP_PASS ?? process.env.MAILTRAP_SMTP_PASS,
     },
   });
 
   const mail = {
-    from: "mail.projectManagement@example.com",
+    from: process.env.SMTP_FROM ?? "mail.projectManagement@example.com",
     to: options.email,
     subject: options.subject,
     text: emailTextualContent,

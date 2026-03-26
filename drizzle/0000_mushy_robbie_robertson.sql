@@ -15,19 +15,14 @@ CREATE TABLE "users" (
 	"updated_at" timestamp DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
+CREATE TABLE "workspaces" (
+	"id" varchar(36) PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"name" varchar(100) NOT NULL,
+	"workspace_avatar" text DEFAULT 'https://placehold.co/200x200' NOT NULL,
+	"created_at" timestamp DEFAULT now() NOT NULL,
+	"updated_at" timestamp DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE UNIQUE INDEX "username_idx" ON "users" USING btree (lower("username"));--> statement-breakpoint
-CREATE UNIQUE INDEX "email_idx" ON "users" USING btree (lower("email"));
-
--- migration.sql
-CREATE OR REPLACE FUNCTION update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-   NEW.updated_at = now();
-   RETURN NEW;
-END;
-$$ language 'plpgsql';
-
-CREATE TRIGGER update_users_updated_at
-BEFORE UPDATE ON users
-FOR EACH ROW
-EXECUTE FUNCTION update_updated_at_column();
+CREATE UNIQUE INDEX "email_idx" ON "users" USING btree (lower("email"));--> statement-breakpoint
+CREATE UNIQUE INDEX "workspace_name_idx" ON "workspaces" USING btree (lower("name"));

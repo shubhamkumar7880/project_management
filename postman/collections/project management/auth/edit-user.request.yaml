@@ -1,0 +1,17 @@
+$kind: http-request
+name: edit user
+url: "{{server}}/user/edit"
+method: PUT
+body:
+  type: formdata
+  content:
+    - type: text
+      key: fullName
+      value: subham kumar
+      disabled: false
+    - type: file
+      key: profilePicture
+      src:
+        - /C:/Users/subha/Desktop/dummy pic 2.avif
+      disabled: true
+order: 1100
