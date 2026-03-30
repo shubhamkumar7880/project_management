@@ -5,12 +5,14 @@ import { verifyWorkspaceAdmin } from "../middlewares/workspace.middleware.ts";
 import {
     createWorkspace,
     deleteWorkspace,
+    getUserWorkspaces,
     updateWorkspace,
 } from "../controllers/workspace.controller.ts";
 
 const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
+router.get("/", verifyJWT, getUserWorkspaces);
 router.post("/", verifyJWT, upload.single("workspaceAvatar"), createWorkspace);
 router.patch(
     "/:workspaceId",

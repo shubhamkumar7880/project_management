@@ -1,10 +1,8 @@
 $kind: http-request
 name: logout
-url: '{{server}}/api/v1/auth/logout'
-headers:
-  Authorization: Bearer {{accessToken}}
+url: "{{server}}/auth/logout"
 method: POST
 headers:
-  - key: Authorization
-    value: 'Bearer {{accessToken}}'
+  Authorization: Bearer {{accessToken}}
+
 order: 7000

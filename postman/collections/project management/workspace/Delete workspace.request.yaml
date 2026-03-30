@@ -1,0 +1,9 @@
+$kind: http-request
+name: Delete workspace
+method: DELETE
+url: "{{server}}/workspaces/{{workspaceId}}"
+headers:
+  - key: Authorization
+    value: Bearer {{accessToken}}
+    disabled: false
+order: 13000

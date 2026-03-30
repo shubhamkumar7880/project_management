@@ -10,7 +10,8 @@ import {
     updateWorkspaceSchema,
 } from "../validators/workspace.validators.ts";
 import { v2 as cloudinary } from "cloudinary";
-import { eq } from "drizzle-orm";
+import { desc, eq, inArray } from "drizzle-orm";
+import { users } from "../models/user.models.ts";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME as string,
@@ -88,6 +89,103 @@ const createWorkspace = asyncHandler(async (req, res) => {
                 workspace: createdWorkspace,
             },
             "Workspace created successfully",
+        ),
+    );
+});
+
+const getUserWorkspaces = asyncHandler(async (req, res) => {
+    const currentUserId = (req as unknown as CustomRequest).user?.id;
+    if (!currentUserId) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    const workspaceRows = await db
+        .select({
+            id: workspaces.id,
+            name: workspaces.name,
+            description: workspaces.description,
+            workspaceAvatar: workspaces.workspaceAvatar,
+            createdBy: workspaces.createdBy,
+            createdAt: workspaces.createdAt,
+            updatedAt: workspaces.updatedAt,
+            role: workspaceMembers.role,
+        })
+        .from(workspaceMembers)
+        .innerJoin(workspaces, eq(workspaceMembers.workspaceId, workspaces.id))
+        .where(eq(workspaceMembers.userId, currentUserId))
+        .orderBy(desc(workspaces.updatedAt));
+
+    if (workspaceRows.length === 0) {
+        return res.status(200).json(
+            new ApiResponse(
+                200,
+                {
+                    workspaces: [],
+                },
+                "User workspaces fetched successfully",
+            ),
+        );
+    }
+
+    const workspaceIds = workspaceRows.map((workspace) => workspace.id);
+
+    const memberRows = await db
+        .select({
+            workspaceId: workspaceMembers.workspaceId,
+            userId: users.id,
+            username: users.username,
+            avatarUrl: users.avatarUrl,
+        })
+        .from(workspaceMembers)
+        .innerJoin(users, eq(workspaceMembers.userId, users.id))
+        .where(inArray(workspaceMembers.workspaceId, workspaceIds));
+
+    const membersByWorkspace = new Map<
+        string,
+        Array<{
+            userId: string;
+            username: string;
+            avatarUrl: string;
+        }>
+    >();
+
+    for (const member of memberRows) {
+        const workspaceMembersList =
+            membersByWorkspace.get(member.workspaceId) ?? [];
+
+        workspaceMembersList.push({
+            userId: member.userId,
+            username: member.username,
+            avatarUrl: member.avatarUrl,
+        });
+
+        membersByWorkspace.set(member.workspaceId, workspaceMembersList);
+    }
+
+    const formattedWorkspaces = workspaceRows.map((workspace) => {
+        const members = membersByWorkspace.get(workspace.id) ?? [];
+
+        return {
+            id: workspace.id,
+            name: workspace.name,
+            description: workspace.description,
+            workspaceAvatar: workspace.workspaceAvatar,
+            createdBy: workspace.createdBy,
+            createdAt: workspace.createdAt,
+            updatedAt: workspace.updatedAt,
+            role: workspace.role,
+            totalMembers: members.length,
+            members,
+        };
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                workspaces: formattedWorkspaces,
+            },
+            "User workspaces fetched successfully",
         ),
     );
 });
@@ -202,4 +300,4 @@ const deleteWorkspace = asyncHandler(async (req, res) => {
     );
 });
 
-export { createWorkspace, updateWorkspace, deleteWorkspace };
+export { createWorkspace, getUserWorkspaces, updateWorkspace, deleteWorkspace };

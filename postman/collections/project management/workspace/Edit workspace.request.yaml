@@ -1,0 +1,23 @@
+$kind: http-request
+name: Edit workspace
+method: PATCH
+url: "{{server}}/workspaces/{{workspaceId}}"
+headers:
+  Authorization: Bearer {{accessToken}}
+body:
+  type: formdata
+  content:
+    - type: text
+      key: name
+      value: NextZen Minds pvt. ltd.
+      disabled: false
+    - type: text
+      key: description
+      value: connect to the future
+      disabled: false
+    - type: file
+      key: workspaceAvatar
+      src:
+        - /C:/Users/subha/Desktop/dummy company logo.jpg
+      disabled: true
+order: 12000

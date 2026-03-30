@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get user workspaces
+method: GET
+url: "{{server}}/workspaces"
+headers:
+  - key: Authorization
+    value: Bearer {{accessToken}}
+    disabled: false
+order: 11500

@@ -3,9 +3,7 @@ name: Create a workspace
 method: POST
 url: "{{server}}/workspaces"
 headers:
-  - key: Authorization
-    value: Bearer {{accessToken}}
-    disabled: false
+  Authorization: Bearer {{accessToken}}
 body:
   type: formdata
   content:
@@ -16,5 +14,11 @@ body:
     - type: file
       key: workspaceAvatar
       src:
-        - /C:/Users/subha/Desktop/dummy pic 2.avif
+        - /C:/Users/subha/Desktop/dummy company logo.jpg
+      disabled: false
+    - type: text
+      key: description
+      value: connect to the future
+      description: ""
+      disabled: false
 order: 11000
