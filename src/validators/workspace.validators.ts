@@ -24,3 +24,11 @@ export const updateWorkspaceSchema = z
             .max(250, "Description must be at most 250 characters")
             .optional(),
     });
+
+export const sendWorkspaceInvitationsSchema = z.object({
+    emails: z
+        .array(z.email("Invalid email address").transform((email) => email.trim().toLowerCase()))
+        .min(1, "At least one email is required"),
+    role: z
+        .enum(["ADMIN", "MEMBER", "VIEWER"])
+});

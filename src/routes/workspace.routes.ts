@@ -6,6 +6,7 @@ import {
     createWorkspace,
     deleteWorkspace,
     getUserWorkspaces,
+    inviteWorkspaceMembers,
     updateWorkspace,
 } from "../controllers/workspace.controller.ts";
 
@@ -20,6 +21,12 @@ router.patch(
     verifyWorkspaceAdmin,
     upload.single("workspaceAvatar"),
     updateWorkspace,
+);
+router.post(
+    "/:workspaceId/invitations",
+    verifyJWT,
+    verifyWorkspaceAdmin,
+    inviteWorkspaceMembers,
 );
 router.delete("/:workspaceId", verifyJWT, verifyWorkspaceAdmin, deleteWorkspace);
 

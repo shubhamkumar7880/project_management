@@ -1,0 +1,18 @@
+$kind: http-request
+name: Invite workspace members
+method: POST
+url: "{{server}}/workspaces/{{workspaceId}}/invitations"
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "emails": [
+        "shubham.kumar@cbnits.com",
+        "subham.kumar@nzminds.com"
+      ],
+      "role": "MEMBER"
+    }
+order: 11750

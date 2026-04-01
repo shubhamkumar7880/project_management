@@ -9,8 +9,8 @@ const sendEmail = async (options: {
   const mailGenerator = new Mailgen({
     theme: "default",
     product: {
-      name: "Project Management App",
-      link: "https://project-management-app.vercel.app",
+      name: process.env.PROJECT_NAME ?? "Project Management App",
+      link: process.env.FRONTEND_URL ?? "http://localhost:3000",
     },
   });
   const emailTextualContent = mailGenerator.generatePlaintext(
@@ -88,8 +88,33 @@ const resetPasswordMailgenContent = (
   };
 };
 
+const workspaceInvitationMailgenContent = (
+  username: string,
+  workspaceName: string,
+  invitationLink: string,
+  role: string,
+) => {
+  return {
+    body: {
+      name: username,
+      intro: `You have been invited to join ${workspaceName} on Project Management App as a ${role}.`,
+      action: {
+        instructions: "To view the workspace invitation, please click here:",
+        button: {
+          color: "#22BC66",
+          text: "Open workspace invitation",
+          link: invitationLink,
+        },
+      },
+      outro:
+        "This invitation will expire in 24 hours. Need help, or have questions? Just reply to this email, we'd love to help.",
+    },
+  };
+};
+
 export {
   emailVerificationMailgenContent,
   resetPasswordMailgenContent,
+  workspaceInvitationMailgenContent,
   sendEmail,
 };
