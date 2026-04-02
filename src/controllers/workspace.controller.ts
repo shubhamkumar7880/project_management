@@ -8,14 +8,19 @@ import ApiResponse from "../utils/api-respnse.ts";
 import type { CustomRequest } from "../utils/types.ts";
 import {
     createWorkspaceSchema,
+    respondToWorkspaceInvitationSchema,
     sendWorkspaceInvitationsSchema,
     updateWorkspaceSchema,
 } from "../validators/workspace.validators.ts";
 import { v2 as cloudinary } from "cloudinary";
-import { and, desc, eq, inArray, or } from "drizzle-orm";
+import { and, desc, eq, gt, inArray } from "drizzle-orm";
 import { users } from "../models/user.models.ts";
 import { sendEmail, workspaceInvitationMailgenContent } from "../utils/mail.ts";
-import { WorkspaceRole, workspaceRoles } from "../utils/constant.ts";
+import {
+    WorkspaceInvitationStatus,
+    WorkspaceRole,
+    workspaceRoles,
+} from "../utils/constant.ts";
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME as string,
@@ -388,7 +393,10 @@ const inviteWorkspaceMembers = asyncHandler(async (req, res) => {
         const invitationsForEmail = invitationsByEmail.get(email) ?? [];
         const blockingInvitation = invitationsForEmail.find(
             (invitation) =>
-                (invitation.status === "PENDING" && invitation.expiresAt > new Date()) || invitation.status === "ACCEPTED",
+                (
+                    invitation.status === WorkspaceInvitationStatus.PENDING &&
+                    invitation.expiresAt > new Date()
+                ) || invitation.status === WorkspaceInvitationStatus.ACCEPTED,
         );
 
         if (
@@ -452,10 +460,157 @@ const inviteWorkspaceMembers = asyncHandler(async (req, res) => {
     );
 });
 
+const getCurrentUserPendingInvitations = asyncHandler(async (req, res) => {
+    const currentUserEmail = (req as unknown as CustomRequest).user?.email;
+    if (!currentUserEmail) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    const invitations = await db
+        .select({
+            id: workspaceInvitations.id,
+            workspaceId: workspaceInvitations.workspaceId,
+            workspaceName: workspaces.name,
+            email: workspaceInvitations.email,
+            role: workspaceInvitations.role,
+            status: workspaceInvitations.status,
+            invitedByName: users.fullName,
+            expiresAt: workspaceInvitations.expiresAt,
+            createdAt: workspaceInvitations.createdAt,
+        })
+        .from(workspaceInvitations)
+        .innerJoin(workspaces, eq(workspaceInvitations.workspaceId, workspaces.id))
+        .innerJoin(users, eq(workspaceInvitations.invitedBy, users.id))
+        .where(
+            and(
+                eq(workspaceInvitations.email, currentUserEmail),
+                eq(workspaceInvitations.status, WorkspaceInvitationStatus.PENDING),
+                gt(workspaceInvitations.expiresAt, new Date()),
+            ),
+        )
+        .orderBy(desc(workspaceInvitations.expiresAt));
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                invitations,
+            },
+            "Pending invitations fetched successfully",
+        ),
+    );
+});
+
+const respondToWorkspaceInvitation = asyncHandler(async (req, res) => {
+    const currentUserId = (req as unknown as CustomRequest).user?.id;
+    const currentUserEmail = (req as unknown as CustomRequest).user?.email;
+    const { invitationId } = req.params;
+
+    if (!currentUserId || !currentUserEmail) {
+        throw new ApiError(401, "Unauthorized request");
+    }
+
+    if (!invitationId) {
+        throw new ApiError(400, "Invitation id is required");
+    }
+
+    const parsed = respondToWorkspaceInvitationSchema.safeParse(req.body);
+    if (!parsed.success) {
+        return res.status(400).json({
+            errors: parsed.error.flatten().fieldErrors,
+            formErrors: parsed.error.flatten().formErrors,
+        });
+    }
+
+    const normalizedCurrentUserEmail = currentUserEmail.trim().toLowerCase();
+
+    const [invitation] = await db
+        .select({
+            id: workspaceInvitations.id,
+            workspaceId: workspaceInvitations.workspaceId,
+            email: workspaceInvitations.email,
+            role: workspaceInvitations.role,
+            status: workspaceInvitations.status,
+            expiresAt: workspaceInvitations.expiresAt,
+        })
+        .from(workspaceInvitations)
+        .where(eq(workspaceInvitations.id, invitationId))
+        .limit(1);
+
+    if (!invitation) {
+        throw new ApiError(404, "Invitation not found");
+    }
+
+    if (invitation.email.toLowerCase() !== normalizedCurrentUserEmail) {
+        throw new ApiError(403, "You can only respond to your own invitation");
+    }
+
+    if (invitation.status !== WorkspaceInvitationStatus.PENDING) {
+        throw new ApiError(409, `Invitation is already ${invitation.status.toLowerCase()}`);
+    }
+
+    if (invitation.expiresAt <= new Date()) {
+        throw new ApiError(410, "Invitation has expired");
+    }
+
+    const nextStatus =
+        parsed.data.action === "ACCEPT"
+            ? WorkspaceInvitationStatus.ACCEPTED
+            : WorkspaceInvitationStatus.REJECTED;
+
+    await db.transaction(async (tx) => {
+        if (parsed.data.action === "ACCEPT") {
+            const [existingMembership] = await tx
+                .select({
+                    id: workspaceMembers.id,
+                })
+                .from(workspaceMembers)
+                .where(
+                    and(
+                        eq(workspaceMembers.workspaceId, invitation.workspaceId),
+                        eq(workspaceMembers.userId, currentUserId),
+                    ),
+                )
+                .limit(1);
+
+            if (existingMembership) {
+                throw new ApiError(409, "You already belong to this workspace");
+            }
+
+            await tx.insert(workspaceMembers).values({
+                userId: currentUserId,
+                workspaceId: invitation.workspaceId,
+                role: invitation.role as WorkspaceRole,
+                joinedAt: new Date(),
+            });
+        }
+
+        await tx
+            .update(workspaceInvitations)
+            .set({
+                status: nextStatus,
+            })
+            .where(eq(workspaceInvitations.id, invitationId));
+    });
+
+    return res.status(200).json(
+        new ApiResponse(
+            200,
+            {
+                invitationId,
+                status: nextStatus,
+            },
+            `Invitation ${nextStatus.toLowerCase()} successfully`,
+        ),
+    );
+});
+
 export {
     createWorkspace,
     getUserWorkspaces,
     updateWorkspace,
     deleteWorkspace,
     inviteWorkspaceMembers,
+    getCurrentUserPendingInvitations,
+    respondToWorkspaceInvitation,
 };

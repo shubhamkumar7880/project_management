@@ -38,7 +38,7 @@ const generateAccessAndRefreshToken = async (userInfo: {
   username: string;
 }) => {
   const { id, email, username } = userInfo;
-  const accessToken = await generateAccessToken(id, email, username);
+  const accessToken = await generateAccessToken(id, username, email);
   const refreshToken = await generateRefreshToken(id);
   return { accessToken, refreshToken };
 };

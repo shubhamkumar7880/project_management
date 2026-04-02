@@ -32,3 +32,7 @@ export const sendWorkspaceInvitationsSchema = z.object({
     role: z
         .enum(["ADMIN", "MEMBER", "VIEWER"])
 });
+
+export const respondToWorkspaceInvitationSchema = z.object({
+    action: z.enum(["ACCEPT", "REJECT"]),
+});

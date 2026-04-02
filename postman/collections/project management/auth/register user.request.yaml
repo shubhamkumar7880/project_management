@@ -7,11 +7,11 @@ body:
   content:
     - type: text
       key: username
-      value: subham
+      value: subham cbnits
       disabled: false
     - type: text
       key: email
-      value: shubhamkumar7880@gmail.com
+      value: shubham.kumar@cbnits.com
       disabled: false
     - type: text
       key: password
@@ -21,10 +21,10 @@ body:
       key: profilePicture
       src:
         - /C:/Users/subha/Desktop/avatar.png
-      disabled: false
+      disabled: true
     - type: text
       key: fullName
-      value: subham kumar
+      value: subham cbnits
       description: ""
       disabled: false
 order: 1000

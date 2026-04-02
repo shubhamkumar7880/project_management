@@ -1,0 +1,14 @@
+$kind: http-request
+name: Respond to workspace invitation
+method: PATCH
+url: "{{server}}/workspaces/invitations/{{invitationId}}/respond"
+headers:
+  Authorization: Bearer {{accessToken}}
+  Content-Type: application/json
+body:
+  type: json
+  content: |-
+    {
+      "action": "ACCEPT"
+    }
+order: 11650

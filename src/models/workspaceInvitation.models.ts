@@ -6,6 +6,7 @@ import {
 import { sql } from "drizzle-orm";
 import { users } from "./user.models.ts";
 import { workspaces } from "./workspace.models.ts";
+import { WorkspaceInvitationStatus } from "../utils/constant.ts";
 
 export const workspaceInvitations = pgTable("workspace_invitations", {
     id: varchar("id", { length: 36 })
@@ -28,7 +29,7 @@ export const workspaceInvitations = pgTable("workspace_invitations", {
 
     status: varchar("status", { length: 10 })
         .notNull()
-        .default("PENDING"),
+        .default(WorkspaceInvitationStatus.PENDING),
 
     createdAt: timestamp("created_at").notNull().defaultNow(),
 

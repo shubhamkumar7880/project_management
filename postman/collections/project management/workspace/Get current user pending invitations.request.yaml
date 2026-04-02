@@ -1,0 +1,9 @@
+$kind: http-request
+name: Get current user pending invitations
+method: GET
+url: "{{server}}/workspaces/invitations/pending"
+headers:
+  - key: Authorization
+    value: Bearer {{accessToken}}
+    disabled: false
+order: 11600
