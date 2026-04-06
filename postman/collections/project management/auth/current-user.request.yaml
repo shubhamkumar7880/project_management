@@ -1,8 +1,7 @@
 $kind: http-request
 name: current-user
-url: '{{server}}/api/v1/auth/current-user'
+url: "{{server}}//auth/current-user"
 method: POST
 headers:
-  - key: Authorization
-    value: 'Bearer {{accessToken}}'
+  Authorization: Bearer {{accessToken}}
 order: 9000

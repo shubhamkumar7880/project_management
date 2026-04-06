@@ -1,0 +1,15 @@
+$kind: http-request
+name: Add project members
+method: POST
+url: "{{server}}/projects/{{projectId}}/members"
+headers:
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+      "userIds": [
+       "177badbe-078b-47d1-b2be-7a359349e039"
+      ]
+    }
+order: 5200

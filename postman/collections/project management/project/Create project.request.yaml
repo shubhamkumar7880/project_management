@@ -1,0 +1,32 @@
+$kind: http-request
+name: Create project
+method: POST
+url: "{{server}}/workspaces/{{workspaceId}}/projects"
+headers:
+  Authorization: Bearer {{accessToken}}
+body:
+  type: formdata
+  content:
+    - type: text
+      key: name
+      value: test project
+      disabled: false
+    - type: text
+      key: description
+      value: test desc
+      description: ""
+      disabled: false
+    - type: text
+      key: projectType
+      value: SCRUM
+      disabled: false
+    - type: text
+      key: status
+      value: active
+      disabled: false
+    - type: file
+      key: projectLogo
+      src:
+        - /C:/Users/subha/Desktop/project_logo.avif
+      disabled: false
+order: 5100

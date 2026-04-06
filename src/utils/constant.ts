@@ -18,3 +18,25 @@ export const workspaceInvitationStatuses = Object.values(WorkspaceInvitationStat
 
 export type WorkspaceInvitationStatusType =
   (typeof WorkspaceInvitationStatus)[keyof typeof WorkspaceInvitationStatus];
+
+export enum ProjectType {
+  KANBAN = "KANBAN",
+  SCRUM = "SCRUM",
+}
+
+export const projectTypes = [ProjectType.KANBAN, ProjectType.SCRUM] as const;
+
+export type ProjectTypeType = (typeof ProjectType)[keyof typeof ProjectType];
+
+export enum ProjectStatus {
+  ACTIVE = "active",
+  INACTIVE = "inactive",
+}
+
+export const projectStatuses = [
+  ProjectStatus.ACTIVE,
+  ProjectStatus.INACTIVE,
+] as const;
+
+export type ProjectStatusType =
+  (typeof ProjectStatus)[keyof typeof ProjectStatus];

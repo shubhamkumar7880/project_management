@@ -2,3 +2,4 @@ $kind: collection
 order:
   - auth
   - workspace
+  - project
