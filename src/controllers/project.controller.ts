@@ -3,6 +3,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { projectMembers } from "../models/projectMember.models.ts";
 import { projects } from "../models/project.models.ts";
+import { users } from "../models/user.models.ts";
 import { workspaceMembers } from "../models/workspaceMember.models.ts";
 import asyncHandler from "../utils/async-handler.ts";
 import ApiError from "../utils/api-error.ts";
@@ -140,6 +141,20 @@ const addProjectMembers = asyncHandler(async (req, res) => {
   }
 
   const normalizedUserIds = [...new Set(parsed.data.userIds)];
+  const targetUsers =
+    normalizedUserIds.length > 0
+      ? await db
+          .select({
+            id: users.id,
+            email: users.email,
+          })
+          .from(users)
+          .where(inArray(users.id, normalizedUserIds))
+      : [];
+
+  const userEmailById = new Map(
+    targetUsers.map((user) => [user.id, user.email]),
+  );
 
   const [project] = await db
     .select({
@@ -196,13 +211,13 @@ const addProjectMembers = asyncHandler(async (req, res) => {
     workspaceMemberships.map((membership) => membership.userId),
   );
 
-  const skipped: Array<{ userId: string; reason: string }> = [];
+  const skipped: Array<{ email: string; reason: string }> = [];
   const eligibleUserIds = normalizedUserIds.filter((userId) => {
     const belongsToWorkspace = workspaceUserIds.has(userId);
 
     if (!belongsToWorkspace) {
       skipped.push({
-        userId,
+        email: userEmailById.get(userId) ?? userId,
         reason: "User does not belong to the same workspace. Only workspace members can be added to this project",
       });
     }
@@ -234,7 +249,7 @@ const addProjectMembers = asyncHandler(async (req, res) => {
 
     if (isAlreadyProjectMember) {
       skipped.push({
-        userId,
+        email: userEmailById.get(userId) ?? userId,
         reason: "User is already a member of this project",
       });
     }
@@ -246,7 +261,7 @@ const addProjectMembers = asyncHandler(async (req, res) => {
     throw new ApiError(
       409,
       skipped.length > 0
-        ? skipped.map((entry) => `${entry.userId}: ${entry.reason}`).join(", ")
+        ? skipped.map((entry) => `${entry.email}: ${entry.reason}`).join(", ")
         : "No valid users found to add to the project",
     );
   }
@@ -265,7 +280,9 @@ const addProjectMembers = asyncHandler(async (req, res) => {
       {
         projectId: project.id,
         projectName: project.name,
-        addedUserIds: userIdsToAdd,
+        addedEmails: userIdsToAdd.map(
+          (userId) => userEmailById.get(userId) ?? userId,
+        ),
         skipped,
       },
       "Project members added successfully",
