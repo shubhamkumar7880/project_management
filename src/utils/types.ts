@@ -13,4 +13,9 @@ export interface CustomRequest extends Request {
     createdAt: Date;
     updatedAt: Date;
   };
+  project?: {
+    id: string;
+    name: string;
+    workspaceId: string;
+  };
 }

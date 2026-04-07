@@ -78,6 +78,13 @@
       "when": 1775547906927,
       "tag": "0010_handy_thanos",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1775558720653,
+      "tag": "0011_hard_riptide",
+      "breakpoints": true
     }
   ]
 }

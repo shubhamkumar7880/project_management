@@ -46,3 +46,9 @@ export const addProjectMembersSchema = z.object({
     .array(z.string().trim().min(1, "User id is required"))
     .min(1, "At least one user id is required"),
 });
+
+export const addProjectLabelsSchema = z.object({
+  labels: z
+    .array(z.string().trim().min(1, "Label name is required"))
+    .min(1, "At least one label is required"),
+});

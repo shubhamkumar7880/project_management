@@ -1,0 +1,16 @@
+$kind: http-request
+name: Add project labels
+method: POST
+url: "{{server}}/projects/{{projectId}}/labels"
+headers:
+  Authorization: Bearer {{accessToken}}
+body:
+  type: json
+  content: |-
+    {
+        "labels": [
+            "Frontend",
+            "Backend"
+        ]
+    }
+order: 5300

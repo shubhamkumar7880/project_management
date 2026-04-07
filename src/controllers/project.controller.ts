@@ -1,8 +1,9 @@
 import { v2 as cloudinary } from "cloudinary";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, desc, eq, inArray, or } from "drizzle-orm";
 import { db } from "../db/index.ts";
 import { boardColumns } from "../models/boardColumn.models.ts";
 import { boards } from "../models/board.models.ts";
+import { projectLabels } from "../models/projectLabel.models.ts";
 import { projectMembers } from "../models/projectMember.models.ts";
 import { projects } from "../models/project.models.ts";
 import { users } from "../models/user.models.ts";
@@ -10,9 +11,10 @@ import { workspaceMembers } from "../models/workspaceMember.models.ts";
 import asyncHandler from "../utils/async-handler.ts";
 import ApiError from "../utils/api-error.ts";
 import ApiResponse from "../utils/api-respnse.ts";
+import { ProjectStatus, WorkspaceRole } from "../utils/constant.ts";
 import type { CustomRequest } from "../utils/types.ts";
-import { WorkspaceRole } from "../utils/constant.ts";
 import {
+  addProjectLabelsSchema,
   addProjectMembersSchema,
   createProjectSchema,
 } from "../validators/project.validators.ts";
@@ -165,6 +167,115 @@ const createProject = asyncHandler(async (req, res) => {
   );
 });
 
+const getUserProjects = asyncHandler(async (req, res) => {
+  const currentUserId = (req as unknown as CustomRequest).user?.id;
+  if (!currentUserId) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  const { workspaceId } = req.params;
+  if (!workspaceId) {
+    throw new ApiError(400, "Workspace id is required");
+  }
+
+  const projectRows = await db
+    .select({
+      id: projects.id,
+      projectLogo: projects.projectLogo,
+      name: projects.name,
+      description: projects.description,
+      status: projects.status,
+      updatedAt: projects.updatedAt,
+      role: workspaceMembers.role,
+    })
+    .from(projectMembers)
+    .innerJoin(projects, eq(projectMembers.projectId, projects.id))
+    .innerJoin(
+      workspaceMembers,
+      and(
+        eq(workspaceMembers.workspaceId, projects.workspaceId),
+        eq(workspaceMembers.userId, currentUserId),
+      ),
+    )
+    .where(
+      and(
+        eq(projectMembers.userId, currentUserId),
+        eq(projects.workspaceId, workspaceId),
+        or(
+          eq(workspaceMembers.role, WorkspaceRole.ADMIN),
+          eq(projects.status, ProjectStatus.ACTIVE),
+        ),
+      ),
+    )
+    .orderBy(desc(projects.updatedAt));
+
+  if (projectRows.length === 0) {
+    return res.status(200).json(
+      new ApiResponse(
+        200,
+        {
+          projects: [],
+        },
+        "User projects fetched successfully",
+      ),
+    );
+  }
+
+  const projectIds = projectRows.map((project) => project.id);
+
+  const memberRows = await db
+    .select({
+      projectId: projectMembers.projectId,
+      userId: users.id,
+      fullName: users.fullName,
+      avatarUrl: users.avatarUrl,
+    })
+    .from(projectMembers)
+    .innerJoin(users, eq(projectMembers.userId, users.id))
+    .where(inArray(projectMembers.projectId, projectIds));
+
+  const membersByProject = new Map<
+    string,
+    Array<{
+      userId: string;
+      name: string;
+      avatarUrl: string;
+    }>
+  >();
+
+  for (const member of memberRows) {
+    const projectMembersList = membersByProject.get(member.projectId) ?? [];
+
+    projectMembersList.push({
+      userId: member.userId,
+      name: member.fullName,
+      avatarUrl: member.avatarUrl,
+    });
+
+    membersByProject.set(member.projectId, projectMembersList);
+  }
+
+  const formattedProjects = projectRows.map((project) => ({
+    id: project.id,
+    projectLogo: project.projectLogo,
+    name: project.name,
+    description: project.description,
+    status: project.status,
+    role: project.role,
+    members: membersByProject.get(project.id) ?? [],
+  }));
+
+  return res.status(200).json(
+    new ApiResponse(
+      200,
+      {
+        projects: formattedProjects,
+      },
+      "User projects fetched successfully",
+    ),
+  );
+});
+
 const addProjectMembers = asyncHandler(async (req, res) => {
   const currentUserId = (req as unknown as CustomRequest).user?.id;
   if (!currentUserId) {
@@ -174,6 +285,11 @@ const addProjectMembers = asyncHandler(async (req, res) => {
   const { projectId } = req.params;
   if (!projectId) {
     throw new ApiError(400, "Project id is required");
+  }
+
+  const project = (req as unknown as CustomRequest).project;
+  if (!project) {
+    throw new ApiError(500, "Project context is missing");
   }
 
   const parsed = addProjectMembersSchema.safeParse(req.body);
@@ -188,56 +304,17 @@ const addProjectMembers = asyncHandler(async (req, res) => {
   const targetUsers =
     normalizedUserIds.length > 0
       ? await db
-          .select({
-            id: users.id,
-            email: users.email,
-          })
-          .from(users)
-          .where(inArray(users.id, normalizedUserIds))
+        .select({
+          id: users.id,
+          email: users.email,
+        })
+        .from(users)
+        .where(inArray(users.id, normalizedUserIds))
       : [];
 
   const userEmailById = new Map(
     targetUsers.map((user) => [user.id, user.email]),
   );
-
-  const [project] = await db
-    .select({
-      id: projects.id,
-      name: projects.name,
-      workspaceId: projects.workspaceId,
-    })
-    .from(projects)
-    .where(eq(projects.id, projectId))
-    .limit(1);
-
-  if (!project) {
-    throw new ApiError(404, "Project not found");
-  }
-
-  const [actingMembership] = await db
-    .select({
-      id: workspaceMembers.id,
-      role: workspaceMembers.role,
-    })
-    .from(workspaceMembers)
-    .where(
-      and(
-        eq(workspaceMembers.workspaceId, project.workspaceId),
-        eq(workspaceMembers.userId, currentUserId),
-      ),
-    )
-    .limit(1);
-
-  if (!actingMembership) {
-    throw new ApiError(403, "You do not belong to this workspace");
-  }
-
-  if (actingMembership.role !== WorkspaceRole.ADMIN) {
-    throw new ApiError(
-      403,
-      "Only workspace admins can add members to this project",
-    );
-  }
 
   const workspaceMemberships = await db
     .select({
@@ -334,4 +411,107 @@ const addProjectMembers = asyncHandler(async (req, res) => {
   );
 });
 
-export { createProject, addProjectMembers };
+const addProjectLabels = asyncHandler(async (req, res) => {
+  const currentUserId = (req as unknown as CustomRequest).user?.id;
+  if (!currentUserId) {
+    throw new ApiError(401, "Unauthorized request");
+  }
+
+  const { projectId } = req.params;
+  if (!projectId) {
+    throw new ApiError(400, "Project id is required");
+  }
+
+  const project = (req as unknown as CustomRequest).project;
+  if (!project) {
+    throw new ApiError(500, "Project context is missing");
+  }
+
+  const parsed = addProjectLabelsSchema.safeParse(req.body);
+  if (!parsed.success) {
+    return res.status(400).json({
+      errors: parsed.error.flatten().fieldErrors,
+      formErrors: parsed.error.flatten().formErrors,
+    });
+  }
+
+  const skipped: Array<{ name: string; reason: string }> = [];
+  const normalizedLabels = [...new Set(parsed.data.labels)];
+
+  parsed.data.labels.forEach((label, index) => {
+    if (normalizedLabels.indexOf(label) !== index) {
+      skipped.push({
+        name: label,
+        reason: "Label was duplicated in the request",
+      });
+    }
+  });
+
+  const existingLabels =
+    normalizedLabels.length > 0
+      ? await db
+        .select({
+          name: projectLabels.name,
+        })
+        .from(projectLabels)
+        .where(eq(projectLabels.projectId, projectId))
+      : [];
+
+  const existingLabelNames = new Set(
+    existingLabels.map((label) => label.name),
+  );
+
+  const labelsToCreate = normalizedLabels.filter((label) => {
+    const alreadyExists = existingLabelNames.has(label);
+
+    if (alreadyExists) {
+      skipped.push({
+        name: label,
+        reason: "Label already exists in this project",
+      });
+    }
+
+    return !alreadyExists;
+  });
+
+  if (labelsToCreate.length === 0) {
+    throw new ApiError(
+      409,
+      skipped.length > 0
+        ? skipped.map((entry) => `${entry.name}: ${entry.reason}`).join(", ")
+        : "No valid labels found to add to the project",
+    );
+  }
+
+  const createdLabels = await db
+    .insert(projectLabels)
+    .values(
+      labelsToCreate.map((name) => ({
+        projectId,
+        name,
+        createdBy: currentUserId,
+      })),
+    )
+    .returning({
+      id: projectLabels.id,
+      projectId: projectLabels.projectId,
+      name: projectLabels.name,
+      createdBy: projectLabels.createdBy,
+      createdAt: projectLabels.createdAt,
+    });
+
+  return res.status(201).json(
+    new ApiResponse(
+      201,
+      {
+        projectId: project.id,
+        projectName: project.name,
+        labels: createdLabels,
+        skipped,
+      },
+      "Project labels added successfully",
+    ),
+  );
+});
+
+export { createProject, getUserProjects, addProjectMembers, addProjectLabels };

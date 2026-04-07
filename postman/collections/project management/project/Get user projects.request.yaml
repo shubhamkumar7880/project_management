@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get user projects
+method: GET
+url: "{{server}}/workspaces/{{workspaceId}}/projects"
+headers:
+  Authorization: Bearer {{accessToken}}
+order: 5400
