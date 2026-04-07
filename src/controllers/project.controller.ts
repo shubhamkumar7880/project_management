@@ -1,6 +1,8 @@
 import { v2 as cloudinary } from "cloudinary";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "../db/index.ts";
+import { boardColumns } from "../models/boardColumn.models.ts";
+import { boards } from "../models/board.models.ts";
 import { projectMembers } from "../models/projectMember.models.ts";
 import { projects } from "../models/project.models.ts";
 import { users } from "../models/user.models.ts";
@@ -96,6 +98,48 @@ const createProject = asyncHandler(async (req, res) => {
     if (!project) {
       throw new ApiError(500, "Unable to create project");
     }
+
+    const [board] = await tx
+      .insert(boards)
+      .values({
+        projectId: project.id,
+        createdBy: currentUserId,
+        updatedBy: currentUserId,
+      })
+      .returning({
+        id: boards.id,
+      });
+
+    if (!board) {
+      throw new ApiError(500, "Unable to create project board");
+    }
+
+    await tx.insert(boardColumns).values([
+      {
+        boardId: board.id,
+        name: "To Do",
+        description: "Tasks has not started yet.",
+        order: 0,
+        createdBy: currentUserId,
+        updatedBy: currentUserId,
+      },
+      {
+        boardId: board.id,
+        name: "In Progress",
+        description: "Task started",
+        order: 1,
+        createdBy: currentUserId,
+        updatedBy: currentUserId,
+      },
+      {
+        boardId: board.id,
+        name: "Done",
+        description: "Task finished",
+        order: 2,
+        createdBy: currentUserId,
+        updatedBy: currentUserId,
+      },
+    ]);
 
     await tx.insert(projectMembers).values({
       userId: currentUserId,
